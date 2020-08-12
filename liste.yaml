@@ -1,0 +1,8 @@
+valeur: "a une cape"
+non: $
+oui:
+  valeur : "batman"
+  non: $
+  oui: $$
+  type: hero
+type: caracteristique
