@@ -1,49 +1,64 @@
 :- set_prolog_flag(stack_limit, 10 000 000 000).
+:- set_prolog_flag(encoding,utf8).
 :- use_module(library(yaml/parser)).
 :- use_module(library(yaml/util)).
 :- use_module(library(yaml/serializer)).
 
-jouer(Donnee) :-
+jouer :-
 	read_yaml(file('C:/Users/david/Documents/Stage/Programmes/liste.yaml'),DOM),
-	parse(DOM,Donnee),
-	parcours(Donnee),
-	print_term(Donnee,[]).
+	parse(DOM,Entree),
+	parcours(Entree,Sortie),
+	serialize(Sortie,DOM1),
+	write_yaml('C:/Users/david/Documents/Stage/Programmes/liste.yaml',DOM1).
 
-
-parcours(Donnee) :-
-        type(Donnee, caracteristique),
-        print_term(Donnee,[]),
-        format("Le heros possede la caracteristique suivante : \"~w\" ?\n", [Donnee.valeur]),
+parcours(Entree,Sortie) :-
+        type(Entree, caracteristique),
+        format("Le heros possede la caracteristique suivante : \"~w\" ?\n", [Entree.valeur]),
         read(X),
-        parcours(Donnee.get(X)),!.
+        parcours(Entree,X,Sortie1),
+        put_dict(X,Entree,Sortie1,Sortie),!.
 
-parcours(Donnee) :-
-        type(Donnee,hero),
-        print_term(Donnee,[]),
-        format("Le heros est : \"~w\" ?\n", [Donnee.valeur]),
+parcours(Entree,Sortie) :-
+        type(Entree,hero),
+        format("Le heros est : \"~w\" ?\n", [Entree.valeur]),
         read(X),
-        parcours(Donnee.get(X)),!.
+        parcours(Entree,X,Sortie1),
+        put_dict(X,Entree,Sortie1,Sortie),!.
 
-parcours(Donnee) :-
-        Donnee == $,
-        print_term(Donnee,[]),
-        writeln("Ajouter un héros"),
-        ajouter_heros(Donnee),!.
+parcours(Entree,Choix,Sortie) :-
+        type(Entree.get(Choix), caracteristique),
+        format("Le heros possede la caracteristique suivante : \"~w\" ?\n", [Entree.get(Choix).valeur]),
+        read(X),
+        parcours(Entree.get(Choix),X,Sortie1),
+        put_dict(X,Entree.get(Choix),Sortie1,Sortie),!.
 
-parcours(Donnee) :-
-        Donnee == $$,
-        print_term(Donnee,[]),
-        writeln("FIN"),!.
+parcours(Entree,Choix,Sortie) :-
+        type(Entree.get(Choix),hero),
+        format("Le heros est : \"~w\" ?\n", [Entree.get(Choix).valeur]),
+        read(X),
+        parcours(Entree.get(Choix),X,Sortie1),
+        put_dict(X,Entree.get(Choix),Sortie1,Sortie),!.
 
-ajouter_heros(Donnee):-
+parcours(Entree,Choix,Sortie) :-
+        Entree.get(Choix) == $,
+        writeln("Ajouter un heros"),
+        ajouter_heros(Sortie),!.
+
+parcours(Entree,Choix,Sortie) :-
+        Entree.get(Choix) == $$,
+        ansi_format([bold],"Vous pensiez a ~w !", [Entree.valeur]),!,
+        copy_term(Entree.get(Choix),Sortie).
+
+ajouter_heros(Sortie):-
     writeln("A quel heros pensiez-vous ?"),
     read(NomHeros),
-    writeln("Quelle caracteristique n'a pas votre hero et n'a pas ete citee"),
+    writeln("Donnez une caracteristique particuliere a votre heros :"),
     read(Carac),
-    Donnee = _{ non:($),
-                       oui:_{non: $,oui: $$,type:hero,valeur:NomHeros},
-                       type:caracteristique,
-                       valeur:Carac}.
+    Sortie = _{valeur:Carac,
+                                non:($),
+                                oui:_{valeur:NomHeros,non: $,oui: $$,type:hero},
+                                type:caracteristique},
+    ansi_format([bold],"Le hero ~w a ete ajoute a la base avec la caracteristique ~w !", [NomHeros,Carac]).
 
 
-type(Donnee, Type) :- is_dict(Donnee), Donnee.type == Type.
+type(Entree, Type) :- is_dict(Entree), Entree.type == Type.
